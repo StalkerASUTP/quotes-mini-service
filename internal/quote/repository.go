@@ -15,7 +15,7 @@ func NewQuotesRepository(databse *storage.Db) *QuotesRepository {
 		Database: databse,
 	}
 }
-func (repo *QuotesRepository) Create(quote *Quote) (*Quote, error) {
+func (repo *QuotesRepository) Save(authorSave, quoteSave string) (*Quote, error) {
 	const op = "quote.repository.Create"
 	tx, err := repo.Database.Begin()
 	if err != nil {
@@ -27,7 +27,7 @@ func (repo *QuotesRepository) Create(quote *Quote) (*Quote, error) {
 		return nil, fmt.Errorf("%s: prepare statement: %w", op, err)
 	}
 	defer insertStmt.Close()
-	res, err := insertStmt.Exec(quote.Author, quote.Quote)
+	res, err := insertStmt.Exec(authorSave, quoteSave)
 	if err != nil {
 		return nil, fmt.Errorf("%s: execute statement: %w", op, err)
 	}
