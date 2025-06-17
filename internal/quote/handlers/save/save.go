@@ -1,4 +1,4 @@
-package handlers
+package save
 
 import (
 	"encoding/json"
@@ -17,7 +17,7 @@ type QuoteSaver interface {
 	Save(authorSave, quoteSave string) (*quote.Quote, error)
 }
 
-func New(log *slog.Logger, saver QuoteSaver) http.HandlerFunc {
+func New(log *slog.Logger, save QuoteSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.save.New"
 		log = log.With(
@@ -31,7 +31,7 @@ func New(log *slog.Logger, saver QuoteSaver) http.HandlerFunc {
 			return
 		}
 		log.Info("request body decoded", slog.Any("request", req))
-		newQuote, err := saver.Save(req.Author, req.Quote)
+		newQuote, err := save.Save(req.Author, req.Quote)
 		if err != nil {
 			log.Error("failed to add quote", sl.Err(err))
 			res.Json(w, res.Error("failed to add quote"), http.StatusInternalServerError)

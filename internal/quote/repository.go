@@ -1,6 +1,7 @@
 package quote
 
 import (
+	"database/sql"
 	"fmt"
 	"math/rand/v2"
 	"quotes-mini-service/internal/storage"
@@ -55,14 +56,22 @@ func (repo *QuotesRepository) Save(authorSave, quoteSave string) (*Quote, error)
 	return &quotes, nil
 }
 
-func (repo *QuotesRepository) GetAll() ([]Quote, int, error) {
-	const op = "quote.repository.GetAll"
+func (repo *QuotesRepository) GetAllParam(author string) ([]Quote, int, error) {
+	const op = "quote.repository.GetAllParan"
+	var (
+		rows *sql.Rows
+		err  error
+	)
 	tx, err := repo.Database.Begin()
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: begin transaction: %w", op, err)
 	}
 	defer tx.Rollback()
-	rows, err := tx.Query("SELECT * FROM quotes")
+	if author == "" {
+		rows, err = tx.Query("SELECT * FROM quotes")
+	} else {
+		rows, err = tx.Query("SELECT * FROM quotes WHERE author = ?", author)
+	}
 	if err != nil {
 		return nil, 0, fmt.Errorf("%s: query execution: %w", op, err)
 	}
@@ -70,7 +79,10 @@ func (repo *QuotesRepository) GetAll() ([]Quote, int, error) {
 	var quotes []Quote
 	for rows.Next() {
 		var quote Quote
-		if err := rows.Scan(&quote.ID, &quote.Author, &quote.Quote, &quote.CreatedAt); err != nil {
+		if err := rows.Scan(&quote.ID,
+			&quote.Author,
+			&quote.Quote,
+			&quote.CreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("%s: commit transaction: %w", op, err)
 		}
 		quotes = append(quotes, quote)
@@ -81,60 +93,42 @@ func (repo *QuotesRepository) GetAll() ([]Quote, int, error) {
 	return quotes, len(quotes), nil
 }
 
-func (repo *QuotesRepository) GetWithParam(author string) ([]Quote, int, error) {
-	const op = "quote.repository.GetWithParam"
-	tx, err := repo.Database.Begin()
-	if err != nil {
-		return nil, 0, fmt.Errorf("%s: begin transaction: %w", op, err)
-	}
-	defer tx.Rollback()
-	stmt, err := tx.Prepare("SELECT * FROM quotes WHERE author = ?")
-	if err != nil {
-		return nil, 0, fmt.Errorf("%s: prepare select: %w", op, err)
-	}
-	defer stmt.Close()
-	rows, err := stmt.Query(author)
-	if err != nil {
-		return nil, 0, fmt.Errorf("%s: query execution: %w", op, err)
-	}
-	defer rows.Close()
-	var quotes []Quote
-	for rows.Next() {
-		var quote Quote
-		if err := rows.Scan(&quote.ID, &quote.Author, &quote.Quote, &quote.CreatedAt); err != nil {
-			return nil, 0, fmt.Errorf("%s: commit transaction: %w", op, err)
-		}
-		quotes = append(quotes, quote)
-	}
-	if err = tx.Commit(); err != nil {
-		return nil, 0, fmt.Errorf("%s: commit transaction: %w", op, err)
-	}
-	return quotes, len(quotes), nil
-}
+// func (repo *QuotesRepository) GetWithParam(author string) ([]Quote, int, error) {
+// 	const op = "quote.repository.GetWithParam"
+// 	tx, err := repo.Database.Begin()
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("%s: begin transaction: %w", op, err)
+// 	}
+// 	defer tx.Rollback()
+// 	stmt, err := tx.Prepare("SELECT * FROM quotes WHERE author = ?")
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("%s: prepare select: %w", op, err)
+// 	}
+// 	defer stmt.Close()
+// 	result, err := tx.Exec("fdgfdsgfgd", author)
 
-func (repo *QuotesRepository) Delete(id int) error {
-	const op = "quote.repository.Delete"
-	tx, err := repo.Database.Begin()
-	if err != nil {
-		return fmt.Errorf("%s: begin transaction: %w", op, err)
-	}
-	defer tx.Rollback()
-	result, err := tx.Exec("DELETE FROM quotes WHERE id = ?", id)
-	if err != nil {
-		return fmt.Errorf("%s: delete operation: %w", op, err)
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("%s: rows affection: %w", op, err)
-	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("%s: quote with id %d not found", op, id)
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("%s: commit transaction: %w", op, err)
-	}
-	return nil
-}
+// 	rows, err := stmt.Query(author)
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("%s: query execution: %w", op, err)
+// 	}
+// 	defer rows.Close()
+// 	var quotes []Quote
+// 	for rows.Next() {
+// 		var quote Quote
+// 		if err := rows.Scan(&quote.ID,
+// 			&quote.Author,
+// 			&quote.Quote,
+// 			&quote.CreatedAt); err != nil {
+// 			return nil, 0, fmt.Errorf("%s: commit transaction: %w", op, err)
+// 		}
+// 		quotes = append(quotes, quote)
+// 	}
+// 	if err = tx.Commit(); err != nil {
+// 		return nil, 0, fmt.Errorf("%s: commit transaction: %w", op, err)
+// 	}
+// 	return quotes, len(quotes), nil
+// }
+
 func (repo *QuotesRepository) GetRandom() (*Quote, error) {
 	const op = "quote.repository.GetRandom"
 	tx, err := repo.Database.Begin()
@@ -162,4 +156,28 @@ func (repo *QuotesRepository) GetRandom() (*Quote, error) {
 		return nil, fmt.Errorf("%s: commit transaction: %w", op, err)
 	}
 	return &randomQuote, nil
+}
+
+func (repo *QuotesRepository) Delete(id int) error {
+	const op = "quote.repository.Delete"
+	tx, err := repo.Database.Begin()
+	if err != nil {
+		return fmt.Errorf("%s: begin transaction: %w", op, err)
+	}
+	defer tx.Rollback()
+	result, err := tx.Exec("DELETE FROM quotes WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("%s: delete operation: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: rows affection: %w", op, err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("%s: quote with id %d not found", op, id)
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("%s: commit transaction: %w", op, err)
+	}
+	return nil
 }

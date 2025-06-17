@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrAuthorNotFound = errors.New("author not found")
+	ErrIdNotFound        = errors.New("id not found")
 )
 
 type Db struct {
