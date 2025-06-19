@@ -40,9 +40,9 @@ go run cmd/main.go
 ```
 go test -v ./...
 ```    
-### В самом тестовом было ограничение на использование на сторнних библиотек, по этой причене в некоторых моментах использованы "костыли". Две библиотеки, которые пришлось использовать это: [GoDotEnv](https://github.com/joho/godotenv), [go-sqlite3](https://github.com/mattn/go-sqlite3).
+### В самом тестовом было ограничение на использование на сторонних библиотек, по этой причене в некоторых моментах использованы "костыли". Две библиотеки, которые пришлось использовать это: [GoDotEnv](https://github.com/joho/godotenv), [go-sqlite3](https://github.com/mattn/go-sqlite3).
 ### `GoDotEnv` использовался для загрузки локального `.env` файла, в котором хранится конфигурация, а `go-sqlite3` для использования драйвера для работы с БД.
-### P.S. Для упрощения работы с валидации `json` стоило бы использовать [validator](https://github.com/go-playground/validator), для генерации `mock` [mockery]( https://github.com/vektra/mockery) и использовать какой-нибудь `router` со встроенными `middleware` и другими плюшками
+### P.S. Для упрощения работы с валидацией `json` стоило бы использовать [validator](https://github.com/go-playground/validator), для генерации `mock` [mockery]( https://github.com/vektra/mockery) и использовать какой-нибудь сторонний `router` со встроенными `middleware` и другими плюшками
 
 
  
