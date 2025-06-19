@@ -17,6 +17,12 @@ type GetWithParamResponse struct {
 	Count  int           `json:"count" example:"100"`
 }
 
+func NewResponseWithParam(quotes []quote.Quote, count int) *GetWithParamResponse {
+	return &GetWithParamResponse{
+		Quotes: quotes,
+		Count:  count,
+	}
+}
 func AllParam(log *slog.Logger, get QuoteGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.get.All"
@@ -36,44 +42,12 @@ func AllParam(log *slog.Logger, get QuoteGetter) http.HandlerFunc {
 			return
 		}
 		log.Info("slice of quotes getted")
-		respose := GetWithParamResponse{
-			Quotes: quotes,
-			Count:  count,
-		}
-		log.Info("response id ready", slog.Any("quotes", respose), slog.Int("count", count))
-		res.Json(w, respose, http.StatusOK)
+		response := NewResponseWithParam(quotes, count)
+		log.Info("response id ready", slog.Any("quotes", response), slog.Int("count", count))
+		res.Json(w, response, http.StatusOK)
 	}
 }
 
-// func Param(log *slog.Logger, get QuoteGetter) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		const op = "handlers.get.Param"
-// 		log = log.With(
-// 			slog.String("op", op),
-// 		)
-
-// 		author := r.URL.Query().Get("author")
-// 		if author == "" {
-// 			log.Error("parameter author is empty")
-// 			res.Json(w, res.Error("parameter author is empty"), http.StatusBadRequest)
-// 			return
-// 		}
-// 		log.Info("query parameter getted", slog.Any("author", author))
-// 		quotes, count, err := get.GetWithParam(author)
-// 		if err != nil {
-// 			log.Error("internal server error", sl.Err(err))
-// 			res.Json(w, res.Error("internak server error"), http.StatusInternalServerError)
-// 			return
-// 		}
-// 		log.Info("slice of quotes getted")
-// 		respose := GetWithParamResponse{
-// 			Quotes: quotes,
-// 			Count:  count,
-// 		}
-// 		log.Info("response id ready", slog.Any("quotes", respose), slog.Int("count", count))
-// 		res.Json(w, respose, http.StatusOK)
-// 	}
-// }
 func Random(log *slog.Logger, get QuoteGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.get.Random"

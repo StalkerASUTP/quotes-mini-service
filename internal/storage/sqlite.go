@@ -2,15 +2,9 @@ package storage
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
-)
-
-var (
-	ErrAuthorNotFound = errors.New("author not found")
-	ErrIdNotFound        = errors.New("id not found")
 )
 
 type Db struct {
@@ -23,11 +17,32 @@ func NewStorage(dbPath string) (*Db, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	if err := initDb(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return &Db{db}, nil
+}
+func initDb(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := createTables(tx); err != nil {
+		return err
+	}
+	if err := createTriggers(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+func createTables(tx *sql.Tx) error {
+	const op = "Storage.createTable"
 	createTables := []string{
 		`CREATE TABLE IF NOT EXISTS quotes(
 		id INTEGER PRIMARY KEY,
@@ -45,22 +60,24 @@ func NewStorage(dbPath string) (*Db, error) {
          VALUES ('quotes', 0)`,
 	}
 	for _, query := range createTables {
-		if _, err := db.Exec(query); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("%s: %w", op, err)
+		if _, err := tx.Exec(query); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
+	return nil
+}
+
+func createTriggers(tx *sql.Tx) error {
+	const op = "Storage.createTrigger"
 	createTrigger := []string{
 		`CREATE TRIGGER IF NOT EXISTS update_quotes_counter
     AFTER INSERT ON quotes
-    FOR EACH ROW
     BEGIN
         UPDATE counters SET count_value = count_value + 1 
         WHERE table_name = 'quotes';
     END;`,
 		`CREATE TRIGGER IF NOT EXISTS delete_quotes_counter
     AFTER DELETE ON quotes
-    FOR EACH ROW
     BEGIN
         UPDATE counters SET count_value = count_value - 1 
         WHERE table_name = 'quotes';
@@ -68,10 +85,9 @@ func NewStorage(dbPath string) (*Db, error) {
 		`,
 	}
 	for _, query := range createTrigger {
-		if _, err := db.Exec(query); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("%s: %w", op, err)
+		if _, err := tx.Exec(query); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
-	return &Db{db}, nil
+	return nil
 }

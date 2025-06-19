@@ -6,10 +6,11 @@ import (
 	"os"
 	"quotes-mini-service/internal/config"
 	"quotes-mini-service/internal/quote"
-	deleting "quotes-mini-service/internal/quote/handlers/delete"
+	del "quotes-mini-service/internal/quote/handlers/delete"
 	"quotes-mini-service/internal/quote/handlers/get"
 	"quotes-mini-service/internal/quote/handlers/save"
 	"quotes-mini-service/internal/storage"
+	"quotes-mini-service/pkg/middleware"
 	"quotes-mini-service/pkg/sl"
 )
 
@@ -25,15 +26,15 @@ func main() {
 	queryRepository := quote.NewQuotesRepository(db)
 	log.Info("initializing query repository")
 	router := http.NewServeMux()
+	handler := middleware.New(log)(router)
 	router.HandleFunc("POST /quotes", save.New(log, queryRepository))
-	router.HandleFunc("DELETE /quotes/{id}", deleting.New(log, queryRepository))
+	router.HandleFunc("DELETE /quotes/{id}", del.New(log, queryRepository))
 	router.HandleFunc("GET /quotes", get.AllParam(log, queryRepository))
 	router.HandleFunc("GET /quotes/random", get.Random(log, queryRepository))
-
 	log.Info("starting server", slog.String("address", conf.Address))
 	server := http.Server{
 		Addr:         conf.Address,
-		Handler:      router,
+		Handler:      handler,
 		ReadTimeout:  conf.Timeout,
 		WriteTimeout: conf.Timeout,
 		IdleTimeout:  conf.IdleTimeout,
